@@ -2,24 +2,113 @@ import numpy as np
 import scipy.optimize as opt
 import matplotlib.pyplot as plt
 
-import Inputs as input
+def Decimalise(x,dec):   
+    a = pow(10,dec)
+    x = int(x*a)/a
+    return x
+
+#--------------------------------------------------------------------------------------------------------------------------------
+# Getting variables from .csv 
+
+import csv
+
+Variables = []
+Values = []   
+     
+#def Import_CSV():
+#    with open('Inputs.csv', 'rt') as g:
+#        reader = csv.reader(g)
+#        
+#        # read file row by row
+#        rowNr = 0
+#        for row in reader:
+#            # Skip the header row.
+#            if rowNr >= 1:
+#                #g.seek(0) <-- makes it freeze on start up
+#                Variables.append(row[0])
+#                Values.append(row[1])
+#     
+#            # Increase the row number
+#            rowNr = rowNr + 1
+#    
+#    return Variables, Values
+
+# Print data 
+#print("")
+#print(Variables)
+#print(Values)
+#print(Variables[0]," = ",Values[0])
+
+def getval(x):
+    
+    with open('Inputs.csv', 'rt') as g:
+        reader = csv.reader(g)
+        
+        # read file row by row
+        rowNr = 0
+        for row in reader:
+            # Skip the header row.
+            if rowNr >= 1:
+                #g.seek(0) <-- makes it freeze on start up
+                Variables.append(row[0])
+                Values.append(row[1])
+     
+            # Increase the row number
+            rowNr = rowNr + 1
+    
+    if x == 'xf':
+        x = float(Values[0])
+    elif x == 'xd':
+        x = float(Values[1])
+    elif x == 'xb':
+        x = float(Values[2])
+        
+    elif x == 'P_Tot':
+        x = float(Values[3])
+    elif x == 'q':
+        x = float(Values[4])
+    elif x == 'Rf':
+        x = float(Values[5])
+        
+    elif x == 'AC_LK_A':
+        x = float(Values[6])
+    elif x == 'AC_LK_B':
+        x = float(Values[7])
+    elif x == 'AC_LK_C':
+        x = float(Values[8])
+        
+    elif x == 'AC_HK_A':
+        x = float(Values[9])
+    elif x == 'AC_HK_B':
+        x = float(Values[10])
+    elif x == 'AC_HK_C':
+        x = float(Values[11])
+        
+    elif x == 'N_Size':
+        x = int(Values[12])
+    elif x == 'Max_Pl':
+        x = int(Values[13])
+    
+    return x
+        
+#print(getval('xf'))
 
 #--------------------------------------------------------------------------------------------------------------------------------
 # Variables to set (Values are taken from the Inputs file)
 
-AC_LK = input.Var_In('AC_LK')
-AC_HK = input.Var_In('AC_HK')
+AC_LK = np.array([getval('AC_LK_A'),getval('AC_LK_B'),getval('AC_LK_C')])
+AC_HK = np.array([getval('AC_HK_A'),getval('AC_HK_B'),getval('AC_HK_C')])
     
-P_Tot = input.Var_In('P_Tot') # Bara
-N_Size = input.Var_In('N_Size') # 1001 = 0.1% accuracy for xA
+Max_Pl = getval('Max_Pl')
+N_Size = getval('N_Size') # 1001 = 0.1% accuracy for xA
     
-xf = input.Var_In('xf')
-xd = input.Var_In('xd')
-xb = input.Var_In('xb')
-    
-q = input.Var_In('q')
-Rf = input.Var_In('Rf')
-Max_Pl = input.Var_In('Max_Pl')
+xf = getval('xf')
+xd = getval('xd')
+xb = getval('xb')
+
+P_Tot = getval('P_Tot') # Bara    
+q = getval('q')
+Rf = getval('Rf')
 
 #--------------------------------------------------------------------------------------------------------------------------------
 # making x array which contains xA, yA and T from xA = 0 -> 1 @ step = 1/(N_Size-1)
@@ -60,6 +149,7 @@ for N in range(0,len(xA)):
 
 Eqm_Poly_x2y = np.polyfit(x[0,0:N_Size], x[1,0:N_Size], 6)
 Eqm_Poly_y2x = np.polyfit(x[1,0:N_Size], x[0,0:N_Size], 6)
+Eqm_Poly_x2T = np.polyfit(x[0,0:N_Size], x[2,0:N_Size], 6)
 
 def Eqm_x2y(xA_poly):
     
@@ -72,6 +162,12 @@ def Eqm_y2x(yA_poly):
     xA_poly = Eqm_Poly_y2x[0]*pow(yA_poly,6)+Eqm_Poly_y2x[1]*pow(yA_poly,5)+Eqm_Poly_y2x[2]*pow(yA_poly,4)+Eqm_Poly_y2x[3]*pow(yA_poly,3)+Eqm_Poly_y2x[4]*pow(yA_poly,2)+Eqm_Poly_y2x[5]*pow(yA_poly,1)+Eqm_Poly_y2x[6]*pow(yA_poly,0)
     
     return xA_poly
+
+def Eqm_x2T(TA_poly):
+    
+    TA_poly = Eqm_Poly_x2T[0]*pow(TA_poly,6)+Eqm_Poly_x2T[1]*pow(TA_poly,5)+Eqm_Poly_x2T[2]*pow(TA_poly,4)+Eqm_Poly_x2T[3]*pow(TA_poly,3)+Eqm_Poly_x2T[4]*pow(TA_poly,2)+Eqm_Poly_x2T[5]*pow(TA_poly,1)+Eqm_Poly_x2T[6]*pow(TA_poly,0)
+    
+    return TA_poly
 
 #--------------------------------------------------------------------------------------------------------------------------------
 # fitting q line to eqm
@@ -201,32 +297,19 @@ for N in range (0,idx):
     Act_Pl(N) # Actual plates
 
 Num_Plates = int((idx-1)/2)
-    
-#--------------------------------------------------------------------------------------------------------------------------------
-# This sets the outputs for a callable function
 
-
-if __name__ != '__main__':
-
-    a = Num_Plates 
-    b = R
-    c = Rmin
-    d = x_q_TOL
-    
-    def Outputs(x):
-        if x == 'Num_Plates':
-            x = a
-            
-        elif x == 'R':
-            x = b
-            
-        elif x == 'Rmin':
-            x = c
-                    
-        elif x == 'x_q_TOL':
-            x = d
-    
-        return x
+#def ArrayVal(N): <----- Want to be able to work out the number of plates above and below the feed
+#    a = x[0,N]
+#    return a
+#
+#NewList = []
+#
+#for N in range(0,len(x)):
+#    if ArrayVal(N) >= 0:
+#        NewList[N] = ArrayVal(N)
+#        
+#closest = NewList[:].min()
+#print(closest)
 
 #--------------------------------------------------------------------------------------------------------------------------------
 # Alternative way to set the plates but was found to be slower
@@ -276,6 +359,24 @@ xyten = Eqm_y2x(yxten)
 #--------------------------------------------------------------------------------------------------------------------------------
 # Graphs
 
+def GUI_MT():
+    plt.plot(x[0,0:N_Size],x[1,0:N_Size],'c-',linewidth=1, label='Eqm')
+    plt.plot(Plates[0,0:2*Max_Pl+1],Plates[1,0:2*Max_Pl+1],'k-',linewidth=1, label='Plates')
+    plt.plot([0,1],[0,1],'k--',linewidth=1, label='45')
+    plt.plot([xf,xf],[0,xf],'b-',linewidth=1, label='Feed')
+    plt.plot([xd,xd],[0,xd],'b-',linewidth=1, label='Distillate')
+    plt.plot([xb,xb],[0,xb],'b-',linewidth=1, label='Bottoms')
+    plt.plot([xf,x_q_TOL],[xf,(R*x_q_TOL)/(R+1) + xd/(R+1)],'r-',linewidth=1, label='q Line')
+    plt.plot([xd,x_q_TOL],[xd,(R*x_q_TOL)/(R+1) + xd/(R+1)],'m-',linewidth=1, label='TOL')
+    plt.plot([xb,x_q_TOL],[xb,(R*x_q_TOL)/(R+1) + xd/(R+1)],'g-',linewidth=1, label='BOL')
+    plt.legend()
+    plt.xlabel('xA')
+    plt.ylabel('yA')
+    plt.xlim([0.00, 1])
+    plt.ylim([0.00, 1])
+    plt.savefig('MT.png')
+
+
 def Plot_MT():
     plt.plot(x[0,0:N_Size],x[1,0:N_Size],'c-',linewidth=1, label='Eqm')
     plt.plot(Plates[0,0:2*Max_Pl+1],Plates[1,0:2*Max_Pl+1],'k-',linewidth=1, label='Plates')
@@ -311,18 +412,53 @@ def Plot_Txy():
 
 def To_Print():
     
-    print('test = ',xyten)
-    print('x = ',x)
-    print('Eqm_Poly_x2y = ',Eqm_Poly_x2y)
-    print('x_q = ',x_q)
-    print('y_q = ',Eqm_x2y(x_q))
-    print('x_q_TOL = ',x_q_TOL)
-    print('Plates = ',2*Max_Pl+1)
-    print('R = ',R)
-    print('Plates = ',Plates)
-    print('idx = ',idx)
+    print(' ')
+    #print('test = ',xyten)
+    #print('x = ',x)
+    #print('Eqm_Poly_x2y = ',Eqm_Poly_x2y)
+    #print('x_q = ',x_q)
+    #print('y_q = ',Eqm_x2y(x_q))
+    #print('x_q_TOL = ',x_q_TOL)
+    #print('Plates = ',2*Max_Pl+1)
+    print('Rmin = ', Decimalise(float(Rmin),3))
+    print('R = ', Decimalise(float(R),3))
+    #print('Plates = ',Plates)
+    #print('idx = ',idx)
     print('Num_Plates = ',Num_Plates)
+    print(' ')
+    print('Ttop = ', Decimalise(float(Eqm_x2T(xd)),3))
+    print('Tfeed = ', Decimalise(float(Eqm_x2T(x_q_TOL)),3))
+    print('Tbottom = ', Decimalise(float(Eqm_x2T(xb)),3))
     
+   
+#--------------------------------------------------------------------------------------------------------------------------------
+# This sets the outputs for a callable function
+
+
+def Pre_Output():
+    
+    GUI_MT()
+    
+def Outputs(x):
+    
+    a = Num_Plates 
+    b = R
+    c = Rmin
+    d = x_q_TOL
+        
+    if x == 'Num_Plates':
+        x = a
+            
+    elif x == 'R':
+        x = b
+            
+    elif x == 'Rmin':
+        x = c
+                    
+    elif x == 'x_q_TOL':
+        x = d
+    
+    return x
     
 #--------------------------------------------------------------------------------------------------------------------------------
 # Outputs
